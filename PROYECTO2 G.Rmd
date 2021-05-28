@@ -1,0 +1,102 @@
+---
+title: "PROYECTO FINAL"
+author: "Piña Nuñez Edith Valeria & Ramirez Alvarado María Fernanda"
+date: "27/5/2021"
+output: html_document
+---
+# ORIGENES
+Primera idea, que no se pudo realizar 
+```{r}
+library(BoolNet)
+red<-loadNetwork("farmacos.txt")
+plotNetworkWiring(red)
+
+#atractores
+at<-getPathToAttractor(red, state= c(rep(0,73) ), includeAttractorStates = "all")
+#tabla
+atr<-getAttractors(red)
+atr
+
+
+```
+
+# Fármacos usados en el tratamiento contra el  cáncer
+## Introducción
+Fármacos para el tratamiento del cáncer En la actualidad el cancer es uno de los problemas más importantes a nivel mundial. Varias farmacéuticas dirigen sus investigaciones hacia la lucha de este padecimiento.
+
+Las caracteristicas que comparten estos medicamentos en tanto a su identidad química y efectos secundarios en el paciente, nos permiten realizar un analisis de correlación entre 60 de los medicamentos más usados en el mundo, aprobados por la FDA. Para realizar este análisis se realizó una base de datos inicial con 60 de los medicamentos anticancerigenos más usados. Se contó con 20 variables que implican su composición y efectos secundarios
+
+# BASE DE DATOS
+```{r cars}
+library(readr)
+medicamentos<-read.csv("medicamentos.csv")
+```
+
+Una vez cargada la base con los datos crudos se tiene que modificar para poder trabajar con ella, las modificaciones incluyen nombrar los renglones, eliminar caracteres no numericos y obtener la traspuesta de la matriz.
+# ARREGLOS 
+```{r}
+#NOMBRAR RENGLONES
+row.names(medicamentos)<-medicamentos[,1]
+#QUITAR VALORES NO NUMERICOS
+medicamentos<-medicamentos[,-1]
+#MATRIZ DE CORRELACIÓN
+mat_cor<-cor(t(medicamentos))
+mat_cor
+#VER
+View(mat_cor)
+plot(mat_cor[1,])
+```
+# Libreria phetmap
+## Boxplot y heatmap
+A diferencia de heatmap nos permite tener graficos con mejor estética
+```{r}
+library(pheatmap)
+pheatmap(mat_cor, main = "Heatmap tipos de fármacos")
+boxplot(mat_cor, main= "Boxplot de fármacos", col= "bisque3")
+
+```
+# Matrices
+Una vez que se tiene la matriz de correlación vemos que en esta hay un rango de valores amplio. Con esta adecuación buscamos que los valores vayan unicamente de 0 a 1. 
+```{r}
+matriz_pesada<-mat_cor<-(mat_cor+1)/2
+matriz_pesada
+View(matriz_pesada)
+```
+# Libreria igraph
+Visualizar las redes, en esta ocasión usamos la matriz con valores entre 0 y 1, por lo que se considera pesada. Es no dirigida, porque si un farmaco forma parte de un cluster con otro, el segundo no puede estar fuera del cluster. 
+```{r}
+library(igraph)
+red_f<-graph_from_adjacency_matrix(mat_cor, mode= "undirected", weighted = T )
+plot(red_f)
+
+```
+
+# MATRIZ VALORES DE 0 Y 1
+```{r}
+#MODIFICAR LA DIAGONAL
+diag(mat_cor)<-rep(0, length(mat_cor[1, ]))
+mat_cor
+
+#matriz de ceros y unos 
+
+mat_cor[mat_cor > 0.7]<-1
+mat_cor[mat_cor < 0.69]<-0
+mat_cor
+red_ligera<-graph_from_adjacency_matrix(mat_cor, mode= "undirected")
+plot(red_ligera)
+```
+#Clusters
+Esta es la parte central del analisis de red de este trabajo. Con distintos métodos de clusterización vemos como se comportan los grupos de farmacos, si cambian o se mantienen. 
+```{r}
+#clusters
+c1<-edge.betweenness.community(red_ligera)
+c2<-label.propagation.community(red_ligera)
+
+plot(c1, red_ligera)
+plot(c2, red_ligera)
+
+barplot(sort(degree(red_ligera)), beside= T, col= rainbow(19))
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
